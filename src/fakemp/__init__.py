@@ -61,7 +61,7 @@ def create_pool(test_instance):
     mp = getenv('PYMP', 'true').lower().strip()
 
     try:
-        mp = False if mp is 'false' else True if mp is 'true' else bool(int(mp))
+        mp = False if mp == 'false' else True if mp == 'true' else bool(int(mp))
     except ValueError:
         mp = False
 
