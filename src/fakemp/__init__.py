@@ -58,7 +58,7 @@ class FakeResult(object):
 
 
 def create_pool(test_instance):
-    mp = getenv('PYMP', True).lower().strip()
+    mp = getenv('PYMP', 'true').lower().strip()
 
     try:
         mp = False if mp is 'false' else True if mp is 'true' else bool(int(mp))
