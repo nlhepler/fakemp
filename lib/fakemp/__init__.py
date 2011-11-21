@@ -1,6 +1,7 @@
 
 from multiprocessing import Pool, cpu_count, current_process
-from sys import exc_info, exit as sys_exit
+from os import getenv
+from sys import exc_info, exit as sys_exit, stderr
 
 try:
     import cPickle as pickle
@@ -58,14 +59,21 @@ class FakeResult(object):
 
 
 def create_pool(test_instance):
+    mp = getenv('PYMP', 'true').lower().strip()
 
-    _MULTIPROCESSING = not current_process().daemon
+    try:
+        mp = False if mp == 'false' else True if mp == 'true' else bool(int(mp))
+    except ValueError:
+        mp = False
+
+    mp = mp and not current_process().daemon
+
     try:
         pickle.dumps(test_instance)
     except pickle.PicklingError:
-        _MULTIPROCESSING = False
+        mp = False
 
-    if _MULTIPROCESSING:
+    if mp:
         pool = Pool(cpu_count())
     else:
         pool = FakePool()
@@ -91,10 +99,10 @@ def farmout(num, setup, worker, isresult, attempts=3):
 
             if any([isinstance(r, KeyboardInterrupt) for r in results]):
                 raise KeyboardInterrupt
-            elif all([isresult(r) for r in results]):
-                break
             else:
                 undone = [i for i, r in enumerate(results) if not isresult(r)]
+                if not len(undone):
+                    break
 
         excs = [e for e in results if isinstance(e, Exception)]
         if len(excs):
@@ -122,4 +130,9 @@ def farmworker(fn, *args, **kwargs):
     except KeyboardInterrupt:
         return KeyboardInterrupt
     except:
-        return exc_info()[1]
+        # XXX this is just a hack to get around the fact we can't ask the environment
+        # for PYMP directly
+        if current_process().daemon:
+            return exc_info()[1]
+        else:
+            raise
