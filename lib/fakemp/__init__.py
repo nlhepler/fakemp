@@ -9,6 +9,7 @@ except ImportError:
 
 
 __all__ = ['FakeLock', 'FakeResult', 'FakePool', 'create_pool', 'farmout', 'farmworker']
+__version__ = '0.9.1'
 
 
 class FakeLock(object):
