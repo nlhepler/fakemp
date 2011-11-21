@@ -54,7 +54,7 @@ class FakeResult(object):
     def __init__(self, vals):
         self.__vals = vals
 
-    def get(self, timeout):
+    def get(self, timeout=0xFFFF):
         return self.__vals
 
 
