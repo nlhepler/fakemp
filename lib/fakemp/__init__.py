@@ -103,7 +103,6 @@ def create_pool(pickletest):
         pass
     elif pickletest is False:
         mp = False
-        log.debug('multiprocessing disabled at request of caller')
     else:
         try:
             pickle.dumps(pickletest)
