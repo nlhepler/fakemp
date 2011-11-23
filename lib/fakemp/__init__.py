@@ -99,7 +99,9 @@ def create_pool(pickletest):
 
     mp = _mp and not current_process().daemon
 
-    if pickletest is False:
+    if mp is False:
+        pass
+    elif pickletest is False:
         mp = False
         log.debug('multiprocessing disabled at request of caller')
     else:
