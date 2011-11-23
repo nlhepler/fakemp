@@ -58,7 +58,7 @@ class FakeResult(object):
         return self.__vals
 
 
-def create_pool(test_instance):
+def create_pool(pickletest):
     mp = getenv('PYMP', 'true').lower().strip()
 
     try:
@@ -68,10 +68,13 @@ def create_pool(test_instance):
 
     mp = mp and not current_process().daemon
 
-    try:
-        pickle.dumps(test_instance)
-    except pickle.PicklingError:
+    if pickletest is False:
         mp = False
+    else:
+        try:
+            pickle.dumps(pickletest)
+        except pickle.PicklingError:
+            mp = False
 
     if mp:
         pool = Pool(cpu_count())
@@ -81,12 +84,14 @@ def create_pool(test_instance):
     return pool
 
 
-def farmout(num, setup, worker, isresult, attempts=3):
+def farmout(num, setup, worker, isresult, attempts=3, pickletest=None):
     try:
+        if pickletest is None:
+            pickletest = worker
         results = [None] * num
         undone = xrange(num)
         for _ in xrange(attempts):
-            pool = create_pool(worker)
+            pool = create_pool(pickletest)
 
             for i in undone:
                 results[i] = pool.apply_async(worker, setup(i))
