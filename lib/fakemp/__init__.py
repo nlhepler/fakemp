@@ -5,12 +5,9 @@ import logging
 
 from multiprocessing import Pool, cpu_count, current_process
 from os import getenv
-from sys import exc_info, exit as sys_exit, stderr
+from sys import exc_info, exit as sys_exit
 
-try:
-    import pickle as pickle
-except ImportError:
-    import pickle
+from six.moves import cPickle as pickle
 
 
 __all__ = [
@@ -23,11 +20,11 @@ __all__ = [
     'farmworker'
 ]
 
-__version__ = '0.9.1'
+__version__ = '0.9.2'
 
 FAKEMP_LOGGER = '2dTXjMDeFheXx5QjWZmz8XHz'
 
-_mp = None
+_ncpu = None
 
 
 def _setup_log():
@@ -84,36 +81,39 @@ class FakeResult(object):
 
 
 def create_pool(pickletest):
-    global _mp
+    global _ncpu
 
     log = logging.getLogger(FAKEMP_LOGGER)
 
-    if _mp is None:
-        mp = getenv('PYMP', 'true').lower().strip()
+    if _ncpu is None:
+        var = getenv('NCPU', 'auto').lower().strip()
 
         try:
-            _mp = False if mp == 'false' else True if mp == 'true' else bool(int(mp))
+            _ncpu = cpu_count() if var == 'auto' else min(cpu_count(), int(var))
         except ValueError:
-            _mp = False
+            _ncpu = 0
 
-        if not _mp:
-            log.debug('multiprocessing disabled at request of PYMP environment var')
+        if _ncpu < 2:
+            log.debug('multiprocessing disabled at request of NCPU environment var')
 
-    mp = _mp and not current_process().daemon
+    ncpu = 0 if current_process().daemon else _ncpu
 
-    if mp is False:
+    if ncpu < 2:
         pass
     elif pickletest is False:
-        mp = False
+        ncpu = 0
+        log.debug('multiprocessing disabled at request of caller')
     else:
         try:
             pickle.dumps(pickletest)
         except pickle.PicklingError:
-            mp = False
+            ncpu = 0
             log.debug('multiprocessing disabled because pickle cannot handle given objects')
 
-    if mp:
-        pool = Pool(cpu_count())
+    # don't bother spawning a single process,
+    # just keep the whole thing single-threaded
+    if ncpu > 1:
+        pool = Pool(ncpu)
     else:
         pool = FakePool()
 
@@ -172,7 +172,7 @@ def farmworker(fn, *args, **kwargs):
         return KeyboardInterrupt
     except:
         # XXX this is just a hack to get around the fact we can't ask the environment
-        # for PYMP directly
+        # for NCPU directly
         if current_process().daemon:
             return exc_info()[1]
         else:

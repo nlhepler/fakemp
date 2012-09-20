@@ -18,4 +18,5 @@ setup(name='fakemp',
       license='GNU GPL version 3',
       packages=['fakemp'],
       package_dir={'fakemp': 'lib/fakemp'},
+      requires=['six']
      )
