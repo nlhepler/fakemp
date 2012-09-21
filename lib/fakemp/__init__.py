@@ -113,7 +113,12 @@ def create_pool(pickletest):
     # don't bother spawning a single process,
     # just keep the whole thing single-threaded
     if ncpu > 1:
-        pool = Pool(ncpu)
+        # reboot threads when they're done with each task,
+        # if python supports it (2.7 and up)
+        try:
+            pool = Pool(processes=ncpu, maxtasksperchild=1)
+        except TypeError:
+            pool = Pool(processes=ncpu)
     else:
         pool = FakePool()
 
